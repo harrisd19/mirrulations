@@ -55,7 +55,7 @@ class RedisManager:
                 work = literal_eval(item_from_queue.decode('utf-8'))
                 logger.debug('Variable Success: %s', 'get_work: work assigned to item_from_queue', extra=d)
                 logger.debug('Queue Add Attempt: %s', 'get_work: attempting to add the work gotten to the progress queue', extra=d)
-                self.r.hset("progress", get_curr_time(), work)
+                self.r.hset("progress", get_curr_time(), json.dumps(work))
                 logger.debug('Queue Add Success: %s', 'get_work: work added to the progress queue', extra=d)
             logger.debug("Returning: %s", 'get_work: returning the work to do', extra=d)
             logger.info('Work acquired')
@@ -261,7 +261,7 @@ class RedisManager:
             logger.debug('Variable Success: %s', 'remove_specific_job_from_queue: job assignment successful', extra=d)
 
             logger.debug('Queue Remove Attempt: %s', 'remove_specific_job_from_queue: attmept to remove item from queue',extra=d)
-            self.r.lrem('queue', job, 1)
+            self.r.lrem('queue', 1, job)
             logger.info('Job removed from queue')
 
     def does_job_exist_in_progress(self, job_id):
@@ -422,6 +422,18 @@ class RedisManager:
             logger.debug('Queue Remove Attempt: %s', 'remove_job_from_progress: attempting to remove job from progress', extra=d)
             self.r.hdel('progress', key)
             logger.info('Job removed from progress queue')
+
+    def get_all_keys(self):
+        """
+        Gets all the keys from Queue and Progress
+        :return: return complete list of all the keys in redis
+        """
+        queue = self.r.lrange("queue", 0, -1)
+        queue_list = []
+        progress_keys = self.r.hgetall('progress')
+        for item in queue:
+            queue_list.append(item)
+        return queue_list, progress_keys
 
     # Combined Functions
     def renew_job(self, job_id):
